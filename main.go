@@ -31,7 +31,7 @@ func main() {
 
 		content := ":thinking_face:"
 		if m.ChannelID == "" {
-			content = fmt.Sprintf("[<#%s>] <@%s> was leaved.", m.BeforeUpdate.ChannelID, m.UserID)
+			content = fmt.Sprintf("[<#%s>] <@%s> was left.", m.BeforeUpdate.ChannelID, m.UserID)
 		} else if m.BeforeUpdate == nil {
 			content = fmt.Sprintf("[<#%s>] <@%s> was joined.", m.ChannelID, m.UserID)
 		} else {

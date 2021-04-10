@@ -31,11 +31,11 @@ func main() {
 
 		content := ":thinking_face:"
 		if m.ChannelID == "" {
-			content = fmt.Sprintf("[<#%s>] <@%s> was left.", m.BeforeUpdate.ChannelID, m.UserID)
+			content = fmt.Sprintf("[<#%s>] <@%s> left.", m.BeforeUpdate.ChannelID, m.UserID)
 		} else if m.BeforeUpdate == nil {
-			content = fmt.Sprintf("[<#%s>] <@%s> was joined.", m.ChannelID, m.UserID)
+			content = fmt.Sprintf("[<#%s>] <@%s> joined.", m.ChannelID, m.UserID)
 		} else {
-			content = fmt.Sprintf("[<#%s>] <@%s> was moved from <#%s>.", m.ChannelID, m.UserID, m.BeforeUpdate.ChannelID)
+			content = fmt.Sprintf("[<#%s>] <@%s> moved from <#%s>.", m.ChannelID, m.UserID, m.BeforeUpdate.ChannelID)
 		}
 		_, err := s.ChannelMessageSendComplex(notifyChannelID, &discordgo.MessageSend{
 			Content:         content,

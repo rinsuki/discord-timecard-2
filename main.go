@@ -1,19 +1,46 @@
 package main
 
 import (
-	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/goccy/go-yaml"
 )
 
+type Config struct {
+	Channels map[string]string `yaml:"channels"`
+}
+
+type Message struct {
+	AfterChannel  string
+	BeforeChannel string
+	NotifyChannel string
+}
+
+func (m *Message) ToString(userID string) string {
+	if m.AfterChannel == "" && m.BeforeChannel == "" {
+		return "invalid state"
+	} else if m.AfterChannel == "" {
+		return fmt.Sprintf("[<#%s>] <@!%s> left.", m.BeforeChannel, userID)
+	} else if m.BeforeChannel == "" {
+		return fmt.Sprintf("[<#%s>] <@!%s> joined.", m.AfterChannel, userID)
+	} else {
+		return fmt.Sprintf("[<#%s>] <@!%s> moved from <#%s>.", m.AfterChannel, userID, m.BeforeChannel)
+	}
+}
+
 func main() {
-	notifyChannelID := os.Getenv("DISCORD_NOTIFY_CHANNEL")
-	if notifyChannelID == "" {
-		panic(errors.New("DISCORD_NOTIFY_CHANNEL is required"))
+	configBytes, err := ioutil.ReadFile("config.yml")
+	if err != nil {
+		panic(err)
+	}
+	var config Config
+	if err := yaml.Unmarshal(configBytes, &config); err != nil {
+		panic(err)
 	}
 
 	discord, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
@@ -28,21 +55,39 @@ func main() {
 		if m.BeforeUpdate == nil && m.ChannelID == "" {
 			return
 		}
-
-		content := ":thinking_face:"
-		if m.ChannelID == "" {
-			content = fmt.Sprintf("[<#%s>] <@!%s> left.", m.BeforeUpdate.ChannelID, m.UserID)
-		} else if m.BeforeUpdate == nil {
-			content = fmt.Sprintf("[<#%s>] <@!%s> joined.", m.ChannelID, m.UserID)
+		messages := []Message{}
+		if m.BeforeUpdate != nil && m.GuildID != m.BeforeUpdate.GuildID {
+			// サーバー間移動
+			messages = append(messages, Message{
+				BeforeChannel: m.BeforeUpdate.ChannelID,
+				NotifyChannel: config.Channels[m.BeforeUpdate.GuildID],
+			})
+			messages = append(messages, Message{
+				AfterChannel:  m.ChannelID,
+				NotifyChannel: config.Channels[m.GuildID],
+			})
 		} else {
-			content = fmt.Sprintf("[<#%s>] <@!%s> moved from <#%s>.", m.ChannelID, m.UserID, m.BeforeUpdate.ChannelID)
+			beforeChannel := ""
+			if m.BeforeUpdate != nil {
+				beforeChannel = m.BeforeUpdate.ChannelID
+			}
+			messages = append(messages, Message{
+				BeforeChannel: beforeChannel,
+				AfterChannel:  m.ChannelID,
+				NotifyChannel: config.Channels[m.GuildID],
+			})
 		}
-		_, err := s.ChannelMessageSendComplex(notifyChannelID, &discordgo.MessageSend{
-			Content:         content,
-			AllowedMentions: &discordgo.MessageAllowedMentions{},
-		})
-		if err != nil {
-			panic(err)
+		for _, message := range messages {
+			if message.NotifyChannel == "" {
+				continue
+			}
+			_, err := s.ChannelMessageSendComplex(message.NotifyChannel, &discordgo.MessageSend{
+				Content:         message.ToString(m.UserID),
+				AllowedMentions: &discordgo.MessageAllowedMentions{},
+			})
+			if err != nil {
+				panic(err)
+			}
 		}
 	})
 	discord.Identify.Intents = discordgo.IntentsGuildVoiceStates

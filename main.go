@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
@@ -43,7 +44,15 @@ func main() {
 		panic(err)
 	}
 
-	discord, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
+	token := os.Getenv("DISCORD_TOKEN")
+	if tokenFile := os.Getenv("DISCORD_TOKEN_FILE"); tokenFile != "" {
+		tokenBytes, err := ioutil.ReadFile(tokenFile)
+		if err != nil {
+			panic(err)
+		}
+		token = strings.Trim(string(tokenBytes), " \r\n")
+	}
+	discord, err := discordgo.New("Bot " + token)
 	if err != nil {
 		panic(err)
 	}

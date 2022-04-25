@@ -26,11 +26,11 @@ func (m *Message) ToString(userID string) string {
 	if m.AfterChannel == "" && m.BeforeChannel == "" {
 		return "invalid state"
 	} else if m.AfterChannel == "" {
-		return fmt.Sprintf("[<#%s>] <@!%s> left.", m.BeforeChannel, userID)
+		return fmt.Sprintf("💨 [<#%s>] <@!%s> left.", m.BeforeChannel, userID)
 	} else if m.BeforeChannel == "" {
-		return fmt.Sprintf("[<#%s>] <@!%s> joined.", m.AfterChannel, userID)
+		return fmt.Sprintf("👋 [<#%s>] <@!%s> joined.", m.AfterChannel, userID)
 	} else {
-		return fmt.Sprintf("[<#%s>] <@!%s> moved from <#%s>.", m.AfterChannel, userID, m.BeforeChannel)
+		return fmt.Sprintf("<@!%s> moved from <#%s> to <#%s>.", userID, m.BeforeChannel, m.AfterChannel)
 	}
 }
 
